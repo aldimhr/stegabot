@@ -44,3 +44,19 @@ def capacity_check(cover: str, secret: str, method: str) -> dict:
         'needed_bits': secret_bits,
         'utilization': secret_bits / cap if cap > 0 else float('inf'),
     }
+
+
+def image_capacity_check(image_path: str, secret: str) -> dict:
+    """Check if image has enough LSB capacity for the secret."""
+    from stegano.image_lsb import capacity_lsb
+    cap = capacity_lsb(image_path)
+    secret_bytes = len(secret.encode('utf-8'))
+    secret_bits = secret_bytes * 8
+    needed_bits = 32 + secret_bits  # header + message
+    return {
+        'enough': cap['usable_bits'] >= secret_bits,
+        'capacity_bits': cap['usable_bits'],
+        'needed_bits': needed_bits,
+        'capacity_chars': cap['capacity_chars'],
+        'image_pixels': cap['pixels'],
+    }
