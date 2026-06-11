@@ -21,6 +21,7 @@ from handlers.decode import decode_handler, decode_message_handler
 from handlers.detect import detect_handler, detect_message_handler
 from handlers.demo import demo_handler, imgdemo_handler
 from handlers.encrypt import encrypt_handler
+from handlers.learn import learn_handler, learn_callback
 from handlers.imgencode import (
     imgencode_handler, imgencode_photo_handler, imgencode_document_handler,
     imgencode_depth_callback, imgencode_encrypt_callback,
@@ -88,6 +89,7 @@ async def post_init(app: Application) -> None:
         BotCommand("demo", "📝 Live text steganography demo"),
         BotCommand("imgdemo", "🖼️ Live image steganography demo"),
         BotCommand("encrypt", "🔒 Toggle AES-128 encryption"),
+        BotCommand("learn", "📚 Learn steganography theory"),
     ]
     await app.bot.set_my_commands(commands)
     logger.info("Bot commands menu registered")
@@ -114,6 +116,7 @@ def main():
         lambda u, c: detect_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("encrypt",
         lambda u, c: encrypt_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("learn", learn_handler))
     app.add_handler(CommandHandler("imgencode",
         lambda u, c: imgencode_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("imgdecode",
@@ -123,6 +126,7 @@ def main():
 
     # Callback query handlers (inline buttons)
     app.add_handler(CallbackQueryHandler(method_callback, pattern="^method_"))
+    app.add_handler(CallbackQueryHandler(learn_callback, pattern="^learn_"))
     app.add_handler(CallbackQueryHandler(
         lambda u, c: encode_method_callback(u, c, session_mgr),
         pattern="^enc_method_"
