@@ -32,6 +32,7 @@ Hide text inside PNG images using LSB encoding:
 /imgdemo — Image steganography demo
 /methods — Learn about steganography methods
 /encrypt on|off — Toggle AES encryption for text
+/learn — 📚 Learning center (theory, deep dives)
 
 *Quick example:*
 The text "Hello world" can hide "hi" using zero-width characters — looks identical but carries hidden data!
