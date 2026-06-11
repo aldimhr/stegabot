@@ -1,6 +1,6 @@
 """StegaBot — Telegram bot for text steganography."""
 import logging
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -61,13 +61,32 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await imgencode_secret_handler(update, context, session_mgr)
 
 
+async def post_init(app: Application) -> None:
+    """Set bot commands menu after initialization."""
+    commands = [
+        BotCommand("start", "Welcome & overview"),
+        BotCommand("encode", "Hide a secret in text"),
+        BotCommand("decode", "Extract a hidden text message"),
+        BotCommand("detect", "Scan text for hidden data"),
+        BotCommand("imgencode", "Hide text in an image"),
+        BotCommand("imgdecode", "Extract hidden text from image"),
+        BotCommand("imgdetect", "Scan image for hidden data"),
+        BotCommand("methods", "Learn about steganography methods"),
+        BotCommand("demo", "Live text steganography demo"),
+        BotCommand("imgdemo", "Live image steganography demo"),
+        BotCommand("encrypt", "Toggle AES-128 encryption"),
+    ]
+    await app.bot.set_my_commands(commands)
+    logger.info("Bot commands menu registered")
+
+
 def main():
     """Start the bot."""
     if not TELEGRAM_BOT_KEY:
         logger.error("TELEGRAM_BOT_KEY not set in .env")
         return
 
-    app = Application.builder().token(TELEGRAM_BOT_KEY).build()
+    app = Application.builder().token(TELEGRAM_BOT_KEY).post_init(post_init).build()
 
     # Command handlers
     app.add_handler(CommandHandler("start", start_handler))
