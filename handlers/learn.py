@@ -59,7 +59,7 @@ TOPICS = {
             "🔹 *Homoglyph*\n"
             "Swap Latin letters with identical Cyrillic twins.\n"
             "Capacity: 1 bit per swappable letter.\n\n"
-            "Tap any method below to learn the theory 👇",
+            "Tap any method below to learn the theory 👇"
         ),
         "buttons": [
             [
@@ -380,7 +380,7 @@ TOPICS = {
             "*StegaBot offers two modes:*\n"
             "• 🔓 *Standard* — quick hide, no passphrase\n"
             "• 🔒 *Secure* — AES-128 + scrambled pixels + PBKDF2\n\n"
-            "Tap a topic below to learn more 👇",
+            "Tap a topic below to learn more 👇"
         ),
         "buttons": [
             [
@@ -576,7 +576,7 @@ TOPICS = {
             "• PBKDF2 key derivation (100k iterations)\n"
             "• No magic headers (secure image mode)\n"
             "• Scrambled pixel order (statistical resistance)\n\n"
-            "Tap a topic to learn more 👇",
+            "Tap a topic to learn more 👇"
         ),
         "buttons": [
             [
