@@ -16,31 +16,27 @@ async def imgencode_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     session_mgr.update(chat_id, method="image_lsb", step="awaiting_image")
     await update.message.reply_text(
         "🖼️ *Image Steganography — Encode*\n\n"
-        "Send a *PNG image* to use as cover:\n\n"
-        "💡 For best results, use PNG images. "
-        "JPEG images will be converted to PNG but may lose quality.",
+        "Send a *cover image* (photo or file).\n\n"
+        "💡 For best results, send as a *file/document* (📎) "
+        "to avoid Telegram compression.",
         parse_mode="Markdown",
     )
 
 
-async def imgencode_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
-    """Handle photo upload in image encode flow."""
+async def _process_cover_image(update: Update, session_mgr: SessionManager, file, filename: str):
+    """Common logic for processing cover image from photo or document."""
     chat_id = update.effective_chat.id
     session = session_mgr.get(chat_id)
 
     if session.get("step") != "awaiting_image":
         return False
 
-    # Download the photo
-    photo = update.message.photo[-1]  # Highest resolution
-    file = await photo.get_file()
-
     # Save to temp directory
     tmp_dir = tempfile.mkdtemp()
-    input_path = os.path.join(tmp_dir, "cover.png")
+    input_path = os.path.join(tmp_dir, filename)
     await file.download_to_drive(input_path)
 
-    # Convert to PNG (Telegram sends JPEG for photos)
+    # Convert to PNG
     from PIL import Image
     img = Image.open(input_path)
     png_path = os.path.join(tmp_dir, "cover.png")
@@ -61,6 +57,25 @@ async def imgencode_photo_handler(update: Update, context: ContextTypes.DEFAULT_
         parse_mode="Markdown",
     )
     return True
+
+
+async def imgencode_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
+    """Handle photo upload in image encode flow."""
+    photo = update.message.photo[-1]  # Highest resolution
+    file = await photo.get_file()
+    return await _process_cover_image(update, session_mgr, file, "cover.jpg")
+
+
+async def imgencode_document_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
+    """Handle document upload in image encode flow."""
+    doc = update.message.document
+    if not doc:
+        return False
+    if not doc.mime_type or not doc.mime_type.startswith('image/'):
+        await update.message.reply_text("❌ Please send an image file (PNG, JPG, etc.)")
+        return True
+    file = await doc.get_file()
+    return await _process_cover_image(update, session_mgr, file, doc.file_name or "cover.png")
 
 
 async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
