@@ -46,7 +46,7 @@ TOPICS = {
         "text": (
             "📝 *Text Steganography Overview*\n\n"
             "Text steganography hides data inside ordinary-looking text. "
-            "StegaBot supports *4 methods*, each with different trade-offs.\n\n"
+            "StegaBot supports *6 methods*, each with different trade-offs.\n\n"
             "🔹 *Zero-Width Characters (ZWC)*\n"
             "Invisible Unicode characters between letters.\n"
             "Capacity: ~1 bit per cover character.\n\n"
@@ -59,6 +59,12 @@ TOPICS = {
             "🔹 *Homoglyph*\n"
             "Swap Latin letters with identical Cyrillic twins.\n"
             "Capacity: 1 bit per swappable letter.\n\n"
+            "🔹 *Variation Selector*\n"
+            "Invisible Unicode VS chars after word boundaries.\n"
+            "Capacity: 1 byte per word — 8× higher than ZWC!\n\n"
+            "🔹 *Emoji Steganography*\n"
+            "Data encoded in emoji sequences from a 64-emoji pool.\n"
+            "Capacity: ~1 byte per emoji, pure emoji output.\n\n"
             "Tap any method below to learn the theory 👇"
         ),
         "buttons": [
@@ -69,6 +75,10 @@ TOPICS = {
             [
                 InlineKeyboardButton("🔹 Acrostic Deep Dive", callback_data="learn_acrostic"),
                 InlineKeyboardButton("🔹 Homoglyph Deep Dive", callback_data="learn_homoglyph"),
+            ],
+            [
+                InlineKeyboardButton("🔹 Variation Selector", callback_data="learn_variation_selector"),
+                InlineKeyboardButton("🔹 Emoji Steganography", callback_data="learn_emoji_stego"),
             ],
             [
                 InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
@@ -364,22 +374,19 @@ TOPICS = {
 
     # ── IMAGE METHODS ──
     "image_overview": {
-        "title": "🖼️ Image Steganography",
+        "title": "🖼️ Image & Audio Steganography",
         "text": (
-            "🖼️ *Image Steganography Overview*\n\n"
-            "Images are made of *pixels*. Each pixel has 3 color channels "
-            "(Red, Green, Blue), each stored as a number from 0-255.\n\n"
-            "*The Key Insight:*\n"
-            "Changing the *last bit* of a color value changes the number "
-            "by at most 1 — invisible to the human eye!\n\n"
-            "For example:\n"
-            "• Red = 142 → binary: `10001110`\n"
-            "• Change last bit: `10001111` → Red = 143\n"
-            "• You *cannot* see the difference!\n\n"
-            "*This is LSB (Least Significant Bit) encoding.*\n\n"
-            "*StegaBot offers two modes:*\n"
-            "• 🔓 *Standard* — quick hide, no passphrase\n"
-            "• 🔒 *Secure* — AES-128 + scrambled pixels + PBKDF2\n\n"
+            "🖼️ *Image & Audio Steganography Overview*\n\n"
+            "Images and audio are made of *samples*. Each sample is a number "
+            "we can modify at the bit level.\n\n"
+            "*Images:* Pixels have R, G, B values (0-255). "
+            "Changing the *last bit* is invisible to the eye.\n\n"
+            "*Audio:* WAV samples are 16-bit integers. "
+            "Changing the LSB is inaudible.\n\n"
+            "StegaBot offers:\n"
+            "• 🔓 *Image Standard LSB* — quick hide, no passphrase\n"
+            "• 🔒 *Image Secure LSB* — AES-128 + scrambled pixels\n"
+            "• 🎵 *Audio LSB* — hide data in WAV audio files\n\n"
             "Tap a topic below to learn more 👇"
         ),
         "buttons": [
@@ -389,6 +396,9 @@ TOPICS = {
             ],
             [
                 InlineKeyboardButton("🔒 Secure Mode", callback_data="learn_secure_mode"),
+                InlineKeyboardButton("🎵 Audio LSB", callback_data="learn_audio_lsb"),
+            ],
+            [
                 InlineKeyboardButton("⚠️ Common Mistakes", callback_data="learn_image_mistakes"),
             ],
             [
@@ -672,6 +682,166 @@ TOPICS = {
             ],
         ],
     },
+
+    # ── NEW METHODS ──
+    "variation_selector": {
+        "title": "🔹 Unicode Variation Selector — Deep Dive",
+        "text": (
+            "🔹 *Unicode Variation Selector Steganography*\n\n"
+            "*The Idea:*\n"
+            "Unicode has invisible characters called Variation Selectors "
+            "(VS1-VS256) that normally select emoji/text variants. "
+            "They are completely invisible but preserved in text.\n\n"
+            "*How It Works:*\n"
+            "1. Convert secret → UTF-8 bytes\n"
+            "2. Each byte (0-255) maps to one VS character:\n"
+            "   • Byte 0-15 → U+FE00 to U+FE0F (VS1-16)\n"
+            "   • Byte 16-255 → U+E0100 to U+E01EF (VS17-256)\n"
+            "3. Insert VS characters after each space in cover text\n\n"
+            "*Capacity:* 1 byte per word boundary\n"
+            "A 50-word sentence hides 50 bytes!\n\n"
+            "*Why It's Better Than ZWC:*\n"
+            "• ZWC: ~1 bit per character (6 chars = 1 byte)\n"
+            "• VS: 1 byte per word boundary (8× higher capacity!)\n"
+            "• Both are invisible, but VS carries more data\n\n"
+            "*Robustness:*\n"
+            "Survives Telegram, Discord, most web forms. "
+            "Destroyed by strict Unicode sanitizers.\n\n"
+            "*Detection:*\n"
+            "Requires scanning for U+FE00-U+FE0F and U+E0100-U+E01EF ranges. "
+            "Invisible to casual inspection."
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton("⚡ Try It Now", callback_data="learn_vs_try"),
+                InlineKeyboardButton("📝 Text Methods", callback_data="learn_text_overview"),
+            ],
+            [
+                InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
+            ],
+        ],
+    },
+
+    "vs_try": {
+        "title": "⚡ Try Variation Selector Encoding",
+        "text": (
+            "⚡ *Try Variation Selector Encoding*\n\n"
+            "Ready to hide a message with maximum text capacity?\n\n"
+            "*Step 1:* Send /encode\n"
+            "*Step 2:* Choose \"Variation Selector\" method\n"
+            "*Step 3:* Type your cover text (needs enough words)\n"
+            "*Step 4:* Type your secret message\n\n"
+            "*Capacity:* 1 byte per word boundary\n"
+            "A 100-word cover text hides 100 bytes!\n\n"
+            "*Tips:*\n"
+            "• Longer cover text = more capacity\n"
+            "• The output looks exactly like your cover text\n"
+            "• Add /encrypt on for extra security\n\n"
+            "To decode: /decode and paste the text.\n\n"
+            "Try it now! 👉 /encode"
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton("🔹 Back to VS Theory", callback_data="learn_variation_selector"),
+                InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
+            ],
+        ],
+    },
+
+    "emoji_stego": {
+        "title": "🔹 Emoji Steganography — Deep Dive",
+        "text": (
+            "🔹 *Emoji Steganography*\n\n"
+            "*The Idea:*\n"
+            "Encode data in sequences of emoji from a fixed 64-emoji pool. "
+            "Each emoji encodes 6 bits (64 values). "
+            "Skin tone modifiers add 2 extra bits.\n\n"
+            "*The Emoji Pool:*\n"
+            "😀😂😍🤔😎🥳😱🤩🐶🐱🐸🦊🐻🐼🦁🐮"
+            "🍎🍊🍋🍇🍓🍒🌽🥕⚽🏀🎾🏐🎱🎯🎮🎲"
+            "🌹🌻🌸🍄⭐🌙☀️❄️🚗🚀✈️🚂🏠🗼🎡🎪"
+            "❤️💔💯✅❌⚡🔥💧🎵🎸🥁🎺📱💻📷🔑\n\n"
+            "*How It Works:*\n"
+            "1. Convert secret → bytes → 6-bit chunks\n"
+            "2. Each chunk selects an emoji from the pool\n"
+            "3. Optionally add skin tone modifier (5 options)\n"
+            "4. Terminator emoji marks end of data\n\n"
+            "*Capacity:* ~1 byte per emoji\n"
+            "20 emoji = 20 bytes hidden data\n\n"
+            "*Output:* Pure emoji — no visible text at all!\n"
+            "Looks like casual emoji usage.\n\n"
+            "*Robustness:*\n"
+            "Platform-dependent. Different platforms may render emoji differently."
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton("⚡ Try It Now", callback_data="learn_emoji_try"),
+                InlineKeyboardButton("📝 Text Methods", callback_data="learn_text_overview"),
+            ],
+            [
+                InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
+            ],
+        ],
+    },
+
+    "emoji_try": {
+        "title": "⚡ Try Emoji Encoding",
+        "text": (
+            "⚡ *Try Emoji Steganography*\n\n"
+            "Hide a message in pure emoji!\n\n"
+            "*Step 1:* Send /encode\n"
+            "*Step 2:* Choose \"Emoji\" method\n"
+            "*Step 3:* Type your secret message (no cover text needed)\n\n"
+            "The bot generates an emoji sequence encoding your secret.\n\n"
+            "*Example:*\n"
+            "Secret: \"Hi\"\n"
+            "Output: 😀🐶🐻🎉🔑 (example — actual emoji depend on data)\n\n"
+            "*To decode:*\n"
+            "Send /decode and paste the emoji sequence.\n\n"
+            "Try it now! 👉 /encode"
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton("🔹 Back to Emoji Theory", callback_data="learn_emoji_stego"),
+                InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
+            ],
+        ],
+    },
+
+    "audio_lsb": {
+        "title": "🎵 Audio LSB — Deep Dive",
+        "text": (
+            "🎵 *Audio LSB Steganography*\n\n"
+            "*The Idea:*\n"
+            "Audio files (WAV) contain thousands of 16-bit samples per second. "
+            "Changing the last bit of each sample is inaudible to humans.\n\n"
+            "*How It Works:*\n"
+            "1. Load WAV audio (16-bit PCM)\n"
+            "2. Convert secret → bits\n"
+            "3. First 32 samples: store payload length (header)\n"
+            "4. Remaining samples: embed 1 bit per sample in LSB\n"
+            "5. Save modified WAV\n\n"
+            "*Capacity:*\n"
+            "8kHz audio: ~1000 bytes/sec\n"
+            "10-second clip: ~10KB hidden\n"
+            "1-minute clip: ~60KB hidden\n\n"
+            "*Robustness:*\n"
+            "Fragile — lost on re-encoding (MP3, Opus, AAC). "
+            "Must send as WAV document on Telegram.\n\n"
+            "*Detection:*\n"
+            "Detectable by statistical analysis (chi-square, RS). "
+            "Phase coding and spread spectrum are harder to detect.\n\n"
+            "*Telegram Tip:*\n"
+            "Send as 📎 document, NOT as voice message! "
+            "Voice messages are re-encoded to Opus, destroying LSB data."
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton("🖼️ Image Methods", callback_data="learn_image_overview"),
+                InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main"),
+            ],
+        ],
+    },
 }
 
 
@@ -702,8 +872,8 @@ MAIN_MENU_TEXT = (
     "Welcome! Choose a topic to learn the theory and practice "
     "of hiding secrets in plain sight.\n\n"
     "📖 *What is Steganography?* — The concept & history\n"
-    "📝 *Text Methods* — ZWC, SNOW, Acrostic, Homoglyph\n"
-    "🖼️ *Image Methods* — LSB encoding, depth, secure mode\n"
+    "📝 *Text Methods* — ZWC, SNOW, Acrostic, Homoglyph, VS, Emoji\n"
+    "🖼️ *Image & Audio* — LSB encoding, depth, secure mode, audio\n"
     "🔒 *Security* — Steganalysis, detection, countermeasures\n"
     "🛡️ *Best Practices* — How to stay safe\n\n"
     "Tap a topic to start learning 👇"
