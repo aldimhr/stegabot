@@ -32,10 +32,10 @@ def capacity_check(cover: str, secret: str, method: str) -> dict:
 
     secret_bits = len(text_to_bits(secret))
     cover_capacity = {
-        'zwc': len(cover),
-        'snow': cover.count('\n'),
-        'acrostic': len(cover.split()),
-        'homoglyph': sum(1 for c in cover if c.lower() in HOMOGLYPHS),
+        'zwc': len(cover),                          # 1 bit per char position
+        'snow': cover.count('\n'),                   # 1 bit per line
+        'acrostic': len(cover.split()) * 8,          # 1 char (8 bits) per word
+        'homoglyph': sum(1 for c in cover if c.lower() in HOMOGLYPHS),  # 1 bit per eligible letter
     }
     cap = cover_capacity.get(method, 0)
     return {
