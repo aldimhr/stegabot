@@ -70,6 +70,8 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await imgencode_passphrase_handler(update, context, session_mgr)
     elif step == "awaiting_image_decrypt_passphrase":
         await imgdecode_passphrase_handler(update, context, session_mgr)
+    elif step == "awaiting_secure_passphrase":
+        await imgdecode_passphrase_handler(update, context, session_mgr)
 
 
 async def post_init(app: Application) -> None:

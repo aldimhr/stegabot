@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 
 from state import SessionManager
 from stegano.image_lsb import encode_lsb, capacity_lsb
-from stegano.crypto import encrypt_secret
+from stegano.image_lsb_secure import encode_lsb_secure
 from config import MAX_SECRET_BYTES
 
 
@@ -200,50 +200,44 @@ async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT
         )
         return True
 
-    # Encrypt if requested
-    payload = secret
-    if do_encrypt and passphrase:
-        payload = encrypt_secret(secret, passphrase)
-
-    # Check capacity
-    cap = capacity_lsb(cover_path, depth=depth)
-    payload_bits = len(payload.encode('utf-8')) * 8
-    if payload_bits > cap['usable_bits']:
-        await update.message.reply_text(
-            f"⚠️ Secret too long for this image at {depth}-bit depth!\n\n"
-            f"Need: {payload_bits:,} bits\n"
-            f"Capacity: {cap['usable_bits']:,} bits\n\n"
-            f"Try a larger image, shorter secret, or higher depth."
-        )
-        return True
-
     # Encode
     stego_path = cover_path.replace("cover.png", "stego.png")
     try:
-        encode_lsb(cover_path, payload, stego_path, depth=depth, compress=True)
+        if do_encrypt and passphrase:
+            # Secure mode: full encryption + scrambled pixels + no magic header
+            encode_lsb_secure(
+                cover_path, secret, stego_path,
+                passphrase=passphrase, depth=depth, compress=True,
+            )
+        else:
+            # Standard mode: plaintext LSB with magic header
+            encode_lsb(cover_path, secret, stego_path, depth=depth, compress=True)
     except ValueError as e:
         await update.message.reply_text(f"❌ Error: {e}")
         session_mgr.reset(chat_id)
         return True
 
     # Build caption
-    encrypt_info = "🔒 AES-128 encrypted" if do_encrypt else "🔓 Not encrypted"
-    passphrase_hint = ""
+    secret_size = len(secret.encode("utf-8"))
     if do_encrypt:
+        encrypt_info = "🔒 *Secure mode:* AES-128 + scrambled pixels + no magic header"
         passphrase_hint = (
             f"\n🔑 Passphrase: `{passphrase}`\n"
-            "⚠️ Share this passphrase with the recipient privately!\n"
+            "⚠️ Share this passphrase with the recipient *privately*!\n"
         )
+    else:
+        encrypt_info = "🔓 Standard LSB (not encrypted)"
+        passphrase_hint = ""
 
     # Send as document (preserves pixels!)
     await update.message.reply_document(
-        document=open(stego_path, 'rb'),
+        document=open(stego_path, "rb"),
         filename="stego_image.png",
         caption=(
             "✅ *Secret hidden in image!*\n\n"
-            f"📊 Used: {len(payload):,}/{cap['capacity_chars']:,} chars\n"
+            f"📊 Secret size: {secret_size:,} chars\n"
             f"Depth: {depth}-bit per channel\n"
-            f"Encryption: {encrypt_info}\n"
+            f"Security: {encrypt_info}\n"
             f"{passphrase_hint}\n"
             "📥 *To decode:*\n"
             "1. Download this image\n"
