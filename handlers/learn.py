@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 # ─────────────────────────────────────────────
 
 MAIN_MENU = {
-    "text": (
+    "what": (
         "📖 *What is Steganography?*\n\n"
         "Steganography is the art of hiding a secret message inside something "
         "that looks completely ordinary. The word comes from Greek: "
@@ -712,11 +712,17 @@ MAIN_MENU_TEXT = (
 
 async def learn_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show the learning center main menu."""
-    await update.message.reply_text(
-        MAIN_MENU_TEXT,
-        reply_markup=_main_menu_keyboard(),
-        parse_mode="Markdown",
-    )
+    try:
+        await update.message.reply_text(
+            MAIN_MENU_TEXT,
+            reply_markup=_main_menu_keyboard(),
+            parse_mode="Markdown",
+        )
+    except Exception:
+        await update.message.reply_text(
+            MAIN_MENU_TEXT,
+            reply_markup=_main_menu_keyboard(),
+        )
 
 
 async def learn_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -728,34 +734,55 @@ async def learn_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Main menu
     if topic_key == "main":
-        await query.edit_message_text(
-            MAIN_MENU_TEXT,
-            reply_markup=_main_menu_keyboard(),
-            parse_mode="Markdown",
-        )
+        try:
+            await query.edit_message_text(
+                MAIN_MENU_TEXT,
+                reply_markup=_main_menu_keyboard(),
+                parse_mode="Markdown",
+            )
+        except Exception:
+            await query.edit_message_text(
+                MAIN_MENU_TEXT,
+                reply_markup=_main_menu_keyboard(),
+            )
         return
 
     # Static content pages
     if topic_key in ("what", "history"):
         content = MAIN_MENU.get(topic_key)
         if content:
-            await query.edit_message_text(
-                content,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main")]
-                ]),
-                parse_mode="Markdown",
-            )
+            try:
+                await query.edit_message_text(
+                    content,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main")]
+                    ]),
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                await query.edit_message_text(
+                    content,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔙 Main Menu", callback_data="learn_main")]
+                    ]),
+                )
         return
 
     # Topic pages with sub-buttons
     topic = TOPICS.get(topic_key)
     if topic:
-        await query.edit_message_text(
-            f"{topic['title']}\n\n{topic['text']}",
-            reply_markup=InlineKeyboardMarkup(topic["buttons"]),
-            parse_mode="Markdown",
-        )
+        full_text = f"{topic['title']}\n\n{topic['text']}"
+        try:
+            await query.edit_message_text(
+                full_text,
+                reply_markup=InlineKeyboardMarkup(topic["buttons"]),
+                parse_mode="Markdown",
+            )
+        except Exception:
+            await query.edit_message_text(
+                full_text,
+                reply_markup=InlineKeyboardMarkup(topic["buttons"]),
+            )
         return
 
     # Fallback
