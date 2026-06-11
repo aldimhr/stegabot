@@ -23,9 +23,13 @@ from handlers.demo import demo_handler, imgdemo_handler
 from handlers.encrypt import encrypt_handler
 from handlers.imgencode import (
     imgencode_handler, imgencode_photo_handler, imgencode_document_handler,
-    imgencode_depth_callback, imgencode_secret_handler
+    imgencode_depth_callback, imgencode_encrypt_callback,
+    imgencode_passphrase_handler, imgencode_secret_handler
 )
-from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler, imgdecode_document_handler
+from handlers.imgdecode import (
+    imgdecode_handler, imgdecode_photo_handler, imgdecode_document_handler,
+    imgdecode_decrypt_choice, imgdecode_passphrase_handler
+)
 from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler, imgdetect_document_handler
 
 logging.basicConfig(
@@ -62,6 +66,10 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await encode_message_handler(update, context, session_mgr)
     elif step == "awaiting_image_secret":
         await imgencode_secret_handler(update, context, session_mgr)
+    elif step == "awaiting_image_passphrase":
+        await imgencode_passphrase_handler(update, context, session_mgr)
+    elif step == "awaiting_image_decrypt_passphrase":
+        await imgdecode_passphrase_handler(update, context, session_mgr)
 
 
 async def post_init(app: Application) -> None:
@@ -120,6 +128,14 @@ def main():
     app.add_handler(CallbackQueryHandler(
         lambda u, c: imgencode_depth_callback(u, c, session_mgr),
         pattern="^lsb_depth_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        lambda u, c: imgencode_encrypt_callback(u, c, session_mgr),
+        pattern="^img_encrypt_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        lambda u, c: imgdecode_decrypt_choice(u, c, session_mgr),
+        pattern="^img_dec_"
     ))
 
     # Text message router (for multi-turn flows)

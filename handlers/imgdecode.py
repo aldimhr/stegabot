@@ -1,4 +1,4 @@
-"""Handle /imgdecode — extract hidden text from images."""
+"""Handle /imgdecode — extract hidden text from images with optional decryption."""
 import logging
 import os
 import tempfile
@@ -6,7 +6,8 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from state import SessionManager
-from stegano.image_lsb import decode_lsb, capacity_lsb
+from stegano.image_lsb import decode_lsb
+from stegano.crypto import decrypt_secret
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,8 @@ async def imgdecode_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     await update.message.reply_text(
         "🔍 *Image Steganography — Decode*\n\n"
         "Send the stego image to extract the hidden message.\n\n"
-        "⚠️ *CRITICAL:* Tap 📎 → select the image file. "
-        "Do NOT use the camera/photo picker — Telegram compresses photos!",
+        "⚠️ Tap 📎 → select the image file. "
+        "Do NOT use the camera/photo picker!",
         parse_mode="Markdown",
     )
 
@@ -49,9 +50,6 @@ async def _process_decode_image(update: Update, session_mgr: SessionManager, fil
     png_path = os.path.join(tmp_dir, "stego.png")
     img.save(png_path, format='PNG')
 
-    cap = capacity_lsb(png_path)
-    logger.info(f"Capacity: {cap}")
-
     # Try to decode
     try:
         decoded = decode_lsb(png_path)
@@ -66,10 +64,21 @@ async def _process_decode_image(update: Update, session_mgr: SessionManager, fil
     logger.info(f"Decoded result: '{decoded[:50] if decoded else '(empty)'}'")
 
     if decoded:
+        # Store decoded text and ask if they need to decrypt
+        session_mgr.update(chat_id, decoded_payload=decoded, step="awaiting_decrypt_choice")
+
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [
+            [
+                InlineKeyboardButton("🔓 Not encrypted", callback_data="img_dec_plain"),
+                InlineKeyboardButton("🔑 Enter passphrase", callback_data="img_dec_decrypt"),
+            ],
+        ]
+
         await update.message.reply_text(
-            f"🔍 *Hidden message found!*\n\n"
-            f"Method: LSB (Image)\n"
-            f"Message:\n\n`{decoded}`",
+            "🔍 *Data extracted from image!*\n\n"
+            "Was this message encrypted with a passphrase?",
+            reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown",
         )
     else:
@@ -95,6 +104,62 @@ async def _process_decode_image(update: Update, session_mgr: SessionManager, fil
 
     import shutil
     shutil.rmtree(tmp_dir, ignore_errors=True)
+    # Don't reset session yet — need to handle decrypt choice
+    if not decoded:
+        session_mgr.reset(chat_id)
+    return True
+
+
+async def imgdecode_decrypt_choice(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
+    """Handle decrypt choice after extraction."""
+    query = update.callback_query
+    await query.answer()
+
+    chat_id = query.message.chat_id
+    choice = query.data.replace("img_dec_", "")
+    session = session_mgr.get(chat_id)
+
+    if choice == "plain":
+        decoded = session.get("decoded_payload", "")
+        await query.edit_message_text(
+            f"🔓 *Hidden message:*\n\n`{decoded}`",
+            parse_mode="Markdown",
+        )
+        session_mgr.reset(chat_id)
+    else:
+        session_mgr.update(chat_id, step="awaiting_image_decrypt_passphrase")
+        await query.edit_message_text(
+            "🔑 Send the *passphrase* to decrypt the message:",
+            parse_mode="Markdown",
+        )
+
+
+async def imgdecode_passphrase_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
+    """Handle passphrase input for decryption."""
+    chat_id = update.effective_chat.id
+    session = session_mgr.get(chat_id)
+
+    if session.get("step") != "awaiting_image_decrypt_passphrase":
+        return False
+
+    passphrase = update.message.text
+    decoded = session.get("decoded_payload", "")
+
+    try:
+        plaintext = decrypt_secret(decoded, passphrase)
+        await update.message.reply_text(
+            f"🔓 *Decrypted message:*\n\n`{plaintext}`",
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.warning(f"Decrypt failed: {e}")
+        await update.message.reply_text(
+            "❌ *Decryption failed!*\n\n"
+            "Wrong passphrase or the message wasn't encrypted.\n"
+            "Try again with /imgdecode.",
+            parse_mode="Markdown",
+        )
+
     session_mgr.reset(chat_id)
     return True
 
