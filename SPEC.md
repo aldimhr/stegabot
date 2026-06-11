@@ -180,6 +180,31 @@ def decode_homoglyph(stego: str) -> str:
 
 ---
 
+## Method 5: Image LSB (Least Significant Bit)
+
+**How it works:**
+Each pixel in an RGB image has 3 color channels (R, G, B), each stored as an 8-bit value (0–255). By modifying only the least significant bit of each channel, we can encode 3 bits of data per pixel with virtually no visible change to the image.
+
+A 32-bit header stores the message length, allowing the decoder to extract exactly the right number of bits.
+
+| Image Size | Pixels | Capacity |
+|---|---|---|
+| 100×100 | 10,000 | 3,750 chars |
+| 512×512 | 262,144 | 96 KB |
+| 1024×768 | 786,432 | 288 KB |
+| 1920×1080 | 2,073,600 | 759 KB |
+
+**Robustness:** Survives exact copy-paste. Destroyed by JPEG compression, resize, crop, or screenshot.
+**Telegram compatibility:** ⚠️ Must use `sendDocument` (not `sendPhoto`) to preserve pixel-perfect data. Telegram's `sendPhoto` compresses images and destroys hidden LSB data.
+**Detectability:** Can be detected by statistical analysis (chi-square attack, RS analysis).
+**Format:** PNG only — JPEG lossy compression destroys LSB data.
+
+**References:**
+- Provos & Honeyman, *Hide and Seek: An Introduction to Steganography* (2003)
+- Fridrich, *Steganography in Digital Media* (Cambridge, 2009)
+
+---
+
 ## Method Comparison
 
 | Method | Capacity | Robustness | Invisible? | Works on Telegram? | Complexity |
@@ -188,8 +213,9 @@ def decode_homoglyph(stego: str) -> str:
 | SNOW (Whitespace) | Low | Fragile | ✅ Yes | ⚠️ Code block only | Low |
 | Acrostic | Low | High | ❌ No | ✅ Yes | Medium |
 | Homoglyph | Medium | Medium | ✅ Yes | ✅ Yes | Low |
+| Image LSB | Very High | Medium | ✅ Yes | ⚠️ Document only | Medium |
 
-**Default method: ZWC** — best balance of capacity, invisibility, and Telegram compatibility.
+**Default method: ZWC** for text, **Image LSB** for images — best capacity per cover type.
 
 ---
 
@@ -201,11 +227,16 @@ User (Telegram)
       ▼
 Telegram Bot (Python, python-telegram-bot v21)
       │
-      ├── /encode  → pure Python stegano (no API call)
-      ├── /decode  → pure Python stegano (no API call)
-      ├── /detect  → scan text for hidden data
-      ├── /methods → explain all 4 methods
-      └── /demo    → live example encode + decode
+      ├── /encode     → text steganography (ZWC, SNOW, Acrostic, Homoglyph)
+      ├── /decode     → auto-detect + decode text stego
+      ├── /detect     → scan text for hidden data
+      ├── /imgencode  → image LSB steganography
+      ├── /imgdecode  → extract text from stego image
+      ├── /imgdetect  → scan image for hidden data
+      ├── /methods    → explain all 5 methods
+      ├── /demo       → live text example
+      ├── /imgdemo    → live image example
+      └── /encrypt    → toggle AES-128 encryption
 ```
 
 No external API calls for steganography. 100% offline capable.
@@ -218,7 +249,7 @@ No external API calls for steganography. 100% offline capable.
 |-------|--------|
 | Language | Python 3.11+ |
 | Telegram library | `python-telegram-bot` v21+ (async) |
-| Steganography | Pure Python (zero dependencies) |
+| Steganography | Pure Python (zero dependencies) + PIL/Pillow for image LSB |
 | Encryption (optional) | `cryptography` library (Fernet AES-128) |
 | Config | `.env` (`TELEGRAM_TOKEN` only) |
 | State | In-memory dict per `chat_id` |
