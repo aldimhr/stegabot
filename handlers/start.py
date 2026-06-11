@@ -9,11 +9,13 @@ I use steganography to hide messages inside text and images. No AI, just pure ma
 *Two ways to hide:*
 
 📝 *Text Steganography*
-Hide secrets inside normal-looking text using 4 methods:
+Hide secrets inside normal-looking text using 6 methods:
 • ZWC — zero-width characters between letters
 • SNOW — invisible whitespace/tabs at line ends
 • Acrostic — first letters of each word spell your secret
 • Homoglyph — swap similar-looking characters
+• Variation Selector — invisible Unicode VS chars (8× capacity!)
+• Emoji — hide data in emoji sequences
 
 🖼️ *Image Steganography*
 Hide text inside PNG images using LSB encoding:

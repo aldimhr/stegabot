@@ -7,6 +7,8 @@ from stegano.zwc import encode_zwc
 from stegano.snow import encode_snow
 from stegano.acrostic import encode_acrostic
 from stegano.homoglyph import encode_homoglyph
+from stegano.variation_selector import encode_vs
+from stegano.emoji import encode_emoji
 from stegano.utils import text_to_bits, capacity_check
 from stegano.crypto import encrypt_secret
 from config import MAX_SECRET_BYTES, MAX_COVER_CHARS
@@ -25,6 +27,10 @@ async def encode_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ses
         [
             InlineKeyboardButton("3️⃣ Acrostic", callback_data="enc_method_acrostic"),
             InlineKeyboardButton("4️⃣ Homoglyph", callback_data="enc_method_homoglyph"),
+        ],
+        [
+            InlineKeyboardButton("5️⃣ Variation Selector", callback_data="enc_method_variation_selector"),
+            InlineKeyboardButton("6️⃣ Emoji", callback_data="enc_method_emoji"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -49,13 +55,15 @@ async def encode_method_callback(update: Update, context: ContextTypes.DEFAULT_T
         "snow": "Whitespace/SNOW",
         "acrostic": "Acrostic",
         "homoglyph": "Unicode Homoglyph",
+        "variation_selector": "Unicode Variation Selector",
+        "emoji": "Emoji Steganography",
     }
 
-    if method == "acrostic":
+    if method in ("acrostic", "emoji"):
         await query.edit_message_text(
             f"✅ Method: *{method_names[method]}*\n\n"
             "Now send your *SECRET MESSAGE* to hide:\n\n"
-            "(I'll generate a cover sentence automatically)",
+            "(No cover text needed — I'll generate it automatically)",
             parse_mode="Markdown",
         )
         session_mgr.update(chat_id, step="awaiting_secret")
@@ -101,13 +109,21 @@ async def encode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
         if session.get("encrypt") and session.get("passphrase"):
             secret = encrypt_secret(secret, session["passphrase"])
 
-        # Acrostic: generate cover from secret
+        # Acrostic and Emoji: generate output from secret directly
         if method == "acrostic":
             stego = encode_acrostic(secret)
             if stego is None:
                 await update.message.reply_text(
                     "❌ Secret contains characters I can't encode. Use letters A-Z only."
                 )
+                session_mgr.reset(chat_id)
+                return
+            cap_info = ""
+        elif method == "emoji":
+            try:
+                stego = encode_emoji(secret)
+            except ValueError as e:
+                await update.message.reply_text(f"❌ {e}")
                 session_mgr.reset(chat_id)
                 return
             cap_info = ""
@@ -130,6 +146,7 @@ async def encode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
                 "zwc": encode_zwc,
                 "snow": encode_snow,
                 "homoglyph": encode_homoglyph,
+                "variation_selector": encode_vs,
             }
             stego = encoders[method](cover, secret)
             cap_info = (
@@ -144,11 +161,15 @@ async def encode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
             "snow": "Whitespace/SNOW",
             "acrostic": "Acrostic",
             "homoglyph": "Homoglyph",
+            "variation_selector": "Variation Selector",
+            "emoji": "Emoji Steganography",
         }
 
         if method == "snow":
             # Wrap in code block to preserve trailing whitespace
             display = f"```\n{stego}\n```"
+        elif method == "emoji":
+            display = stego
         else:
             display = stego
 

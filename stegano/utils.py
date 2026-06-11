@@ -36,6 +36,7 @@ def capacity_check(cover: str, secret: str, method: str) -> dict:
         'snow': cover.count('\n'),                   # 1 bit per line
         'acrostic': len(cover.split()) * 8,          # 1 char (8 bits) per word
         'homoglyph': sum(1 for c in cover if c.lower() in HOMOGLYPHS),  # 1 bit per eligible letter
+        'variation_selector': cover.count(' ') * 8,  # 1 byte (8 bits) per word boundary
     }
     cap = cover_capacity.get(method, 0)
     return {

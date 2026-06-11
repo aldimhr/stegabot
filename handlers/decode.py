@@ -7,6 +7,8 @@ from stegano.detect import detect_method
 from stegano.zwc import decode_zwc
 from stegano.snow import decode_snow
 from stegano.homoglyph import decode_homoglyph
+from stegano.variation_selector import decode_vs
+from stegano.emoji import decode_emoji
 
 
 async def decode_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
@@ -34,7 +36,7 @@ async def decode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(
             "❌ *No hidden data detected.*\n\n"
             "The text doesn't contain any recognizable steganographic patterns.\n"
-            "Supported methods: Zero-Width Chars, SNOW, Homoglyph.",
+            "Supported: ZWC, SNOW, Homoglyph, Variation Selector, Emoji.",
             parse_mode="Markdown",
         )
     else:
@@ -42,6 +44,8 @@ async def decode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
             "zwc": decode_zwc,
             "snow": decode_snow,
             "homoglyph": decode_homoglyph,
+            "variation_selector": decode_vs,
+            "emoji": decode_emoji,
         }
         decoded = decoders[method](stego)
 
@@ -49,6 +53,8 @@ async def decode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
             "zwc": "Zero-Width Chars",
             "snow": "Whitespace/SNOW",
             "homoglyph": "Homoglyph",
+            "variation_selector": "Unicode Variation Selector",
+            "emoji": "Emoji Steganography",
         }
 
         await update.message.reply_text(
