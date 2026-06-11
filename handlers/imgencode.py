@@ -1,7 +1,7 @@
 """Handle /imgencode — hide text in images using LSB."""
 import os
 import tempfile
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from state import SessionManager
@@ -42,26 +42,69 @@ async def _process_cover_image(update: Update, session_mgr: SessionManager, file
     png_path = os.path.join(tmp_dir, "cover.png")
     img.save(png_path, format='PNG')
 
-    # Check capacity
-    cap = capacity_lsb(png_path)
+    # Show capacity for all depths
+    caps = {}
+    for d in [1, 2, 3]:
+        caps[d] = capacity_lsb(png_path, depth=d)
+
     session_mgr.update(
         chat_id,
         cover_image=png_path,
-        step="awaiting_image_secret",
+        step="awaiting_image_depth",
     )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"1️⃣ Safe ({caps[1]['capacity_chars']:,} chars)",
+                callback_data="lsb_depth_1"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                f"2️⃣ Medium ({caps[2]['capacity_chars']:,} chars)",
+                callback_data="lsb_depth_2"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                f"3️⃣ Max ({caps[3]['capacity_chars']:,} chars)",
+                callback_data="lsb_depth_3"
+            ),
+        ],
+    ]
 
     await update.message.reply_text(
         f"✅ Image received! ({img.width}×{img.height})\n\n"
-        f"📊 Capacity: {cap['capacity_chars']:,} characters\n\n"
-        f"Now send your *SECRET MESSAGE* to hide:",
+        f"Choose LSB depth (bits per color channel):\n"
+        f"• *Safe (1-bit)* — invisible, lower capacity\n"
+        f"• *Medium (2-bit)* — 2× capacity, still hard to detect\n"
+        f"• *Max (3-bit)* — 3× capacity, detectable by analysis",
+        reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown",
     )
     return True
 
 
+async def imgencode_depth_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
+    """Handle LSB depth selection."""
+    query = update.callback_query
+    await query.answer()
+
+    depth = int(query.data.replace("lsb_depth_", ""))
+    chat_id = query.message.chat_id
+    session_mgr.update(chat_id, lsb_depth=depth, step="awaiting_image_secret")
+
+    await query.edit_message_text(
+        f"✅ Depth set to *{depth}-bit*\n\n"
+        f"Now send your *SECRET MESSAGE* to hide:",
+        parse_mode="Markdown",
+    )
+
+
 async def imgencode_photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, session_mgr: SessionManager):
     """Handle photo upload in image encode flow."""
-    photo = update.message.photo[-1]  # Highest resolution
+    photo = update.message.photo[-1]
     file = await photo.get_file()
     return await _process_cover_image(update, session_mgr, file, "cover.jpg")
 
@@ -88,6 +131,7 @@ async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT
 
     secret = update.message.text
     cover_path = session.get("cover_image")
+    depth = session.get("lsb_depth", 1)
 
     if not cover_path or not os.path.exists(cover_path):
         await update.message.reply_text("❌ Cover image not found. Please /imgencode again.")
@@ -102,20 +146,21 @@ async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT
         return True
 
     # Check capacity
-    cap = image_capacity_check(cover_path, secret)
-    if not cap['enough']:
+    cap = capacity_lsb(cover_path, depth=depth)
+    secret_bits = len(secret.encode('utf-8')) * 8
+    if secret_bits > cap['usable_bits']:
         await update.message.reply_text(
-            f"⚠️ Secret too long for this image!\n\n"
-            f"Need: {cap['needed_bits']:,} bits\n"
-            f"Capacity: {cap['capacity_bits']:,} bits\n\n"
-            f"Try a larger image or shorter secret."
+            f"⚠️ Secret too long for this image at {depth}-bit depth!\n\n"
+            f"Need: {secret_bits:,} bits\n"
+            f"Capacity: {cap['usable_bits']:,} bits\n\n"
+            f"Try a larger image, shorter secret, or higher depth."
         )
         return True
 
     # Encode
     stego_path = cover_path.replace("cover.png", "stego.png")
     try:
-        encode_lsb(cover_path, secret, stego_path)
+        encode_lsb(cover_path, secret, stego_path, depth=depth, compress=True)
     except ValueError as e:
         await update.message.reply_text(f"❌ Error: {e}")
         session_mgr.reset(chat_id)
@@ -128,6 +173,7 @@ async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT
         caption=(
             "✅ *Secret hidden in image!*\n\n"
             f"📊 Used: {len(secret):,}/{cap['capacity_chars']:,} chars\n"
+            f"Depth: {depth}-bit per channel\n"
             f"Method: LSB (Least Significant Bit)\n\n"
             "📥 *To decode later:*\n"
             "1. Download this image to your phone\n"

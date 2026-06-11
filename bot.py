@@ -21,7 +21,10 @@ from handlers.decode import decode_handler, decode_message_handler
 from handlers.detect import detect_handler, detect_message_handler
 from handlers.demo import demo_handler, imgdemo_handler
 from handlers.encrypt import encrypt_handler
-from handlers.imgencode import imgencode_handler, imgencode_photo_handler, imgencode_document_handler, imgencode_secret_handler
+from handlers.imgencode import (
+    imgencode_handler, imgencode_photo_handler, imgencode_document_handler,
+    imgencode_depth_callback, imgencode_secret_handler
+)
 from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler, imgdecode_document_handler
 from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler, imgdetect_document_handler
 
@@ -113,6 +116,10 @@ def main():
     app.add_handler(CallbackQueryHandler(
         lambda u, c: encode_method_callback(u, c, session_mgr),
         pattern="^enc_method_"
+    ))
+    app.add_handler(CallbackQueryHandler(
+        lambda u, c: imgencode_depth_callback(u, c, session_mgr),
+        pattern="^lsb_depth_"
     ))
 
     # Text message router (for multi-turn flows)
