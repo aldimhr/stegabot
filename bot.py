@@ -22,8 +22,8 @@ from handlers.detect import detect_handler, detect_message_handler
 from handlers.demo import demo_handler, imgdemo_handler
 from handlers.encrypt import encrypt_handler
 from handlers.imgencode import imgencode_handler, imgencode_photo_handler, imgencode_secret_handler
-from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler
-from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler
+from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler, imgdecode_document_handler
+from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler, imgdetect_document_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -133,6 +133,20 @@ def main():
             await imgdetect_photo_handler(update, context, session_mgr)
 
     app.add_handler(MessageHandler(filters.PHOTO, photo_router))
+
+    # Document router (for image decode — documents preserve pixels!)
+    async def document_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Route document messages to the correct handler."""
+        chat_id = update.effective_chat.id
+        session = session_mgr.get(chat_id)
+        step = session.get("step")
+
+        if step == "awaiting_stego_image":
+            await imgdecode_document_handler(update, context, session_mgr)
+        elif step == "awaiting_detect_image":
+            await imgdetect_document_handler(update, context, session_mgr)
+
+    app.add_handler(MessageHandler(filters.Document.ALL, document_router))
 
     logger.info("StegaBot starting...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
