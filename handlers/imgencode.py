@@ -129,9 +129,13 @@ async def imgencode_secret_handler(update: Update, context: ContextTypes.DEFAULT
             "✅ *Secret hidden in image!*\n\n"
             f"📊 Used: {len(secret):,}/{cap['capacity_chars']:,} chars\n"
             f"Method: LSB (Least Significant Bit)\n\n"
-            "⚠️ *Important:* To decode this image later, send it to "
-            "the bot as a *file/document* (📎), NOT as a photo! "
-            "Telegram compresses photos and destroys hidden data."
+            "📥 *To decode later:*\n"
+            "1. Download this image to your phone\n"
+            "2. Send /imgdecode to the bot\n"
+            "3. Tap 📎 (attachment) → select this file\n"
+            "4. Send it\n\n"
+            "⚠️ Do NOT use the camera/photo picker — "
+            "Telegram compresses photos and destroys hidden data!"
         ),
         parse_mode="Markdown",
     )
