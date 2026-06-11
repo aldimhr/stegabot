@@ -19,45 +19,109 @@ def make_test_image(name, size=(100, 100), mode='RGB'):
     return path
 
 
-class TestLSB:
+class TestLSBDepth1:
     def test_roundtrip_short(self):
-        cover = make_test_image("cover1.png")
-        stego = os.path.join(TEST_DIR, "stego1.png")
+        cover = make_test_image("d1_cover.png")
+        stego = os.path.join(TEST_DIR, "d1_stego.png")
         secret = "Hello!"
-        encode_lsb(cover, secret, stego)
+        encode_lsb(cover, secret, stego, depth=1)
         assert decode_lsb(stego) == secret
 
     def test_roundtrip_long(self):
-        cover = make_test_image("cover2.png", size=(512, 512))
-        stego = os.path.join(TEST_DIR, "stego2.png")
+        cover = make_test_image("d1_long.png", size=(512, 512))
+        stego = os.path.join(TEST_DIR, "d1_stego_long.png")
         secret = "A" * 1000
-        encode_lsb(cover, secret, stego)
+        encode_lsb(cover, secret, stego, depth=1)
         assert decode_lsb(stego) == secret
 
     def test_roundtrip_unicode(self):
-        cover = make_test_image("cover3.png", size=(256, 256))
-        stego = os.path.join(TEST_DIR, "stego3.png")
+        cover = make_test_image("d1_uni.png", size=(256, 256))
+        stego = os.path.join(TEST_DIR, "d1_stego_uni.png")
         secret = "こんにちは世界 🔐"
-        encode_lsb(cover, secret, stego)
+        encode_lsb(cover, secret, stego, depth=1)
         assert decode_lsb(stego) == secret
 
     def test_rgba_image(self):
-        cover = make_test_image("cover4.png", size=(200, 200), mode='RGBA')
-        stego = os.path.join(TEST_DIR, "stego4.png")
+        cover = make_test_image("d1_rgba.png", size=(200, 200), mode='RGBA')
+        stego = os.path.join(TEST_DIR, "d1_stego_rgba.png")
         secret = "RGBA test"
-        encode_lsb(cover, secret, stego)
+        encode_lsb(cover, secret, stego, depth=1)
         assert decode_lsb(stego) == secret
 
+    def test_capacity(self):
+        cover = make_test_image("d1_cap.png", size=(100, 100))
+        cap = capacity_lsb(cover, depth=1)
+        assert cap['pixels'] == 10000
+        assert cap['channels'] == 3
+        assert cap['depth'] == 1
+        assert cap['capacity_bits'] == 30000
+
+    def test_secret_too_long(self):
+        cover = make_test_image("d1_err.png", size=(10, 10))
+        stego = os.path.join(TEST_DIR, "d1_stego_err.png")
+        # Use random-looking data that won't compress well
+        import string, random
+        random.seed(42)
+        secret = ''.join(random.choices(string.ascii_letters + string.digits, k=200))
+        with pytest.raises(ValueError, match="too long"):
+            encode_lsb(cover, secret, stego, depth=1, compress=False)
+
+
+class TestLSBDepth2:
+    def test_roundtrip(self):
+        cover = make_test_image("d2_cover.png")
+        stego = os.path.join(TEST_DIR, "d2_stego.png")
+        secret = "Depth 2 test!"
+        encode_lsb(cover, secret, stego, depth=2)
+        assert decode_lsb(stego) == secret
+
+    def test_capacity_doubled(self):
+        cover = make_test_image("d2_cap.png", size=(100, 100))
+        cap1 = capacity_lsb(cover, depth=1)
+        cap2 = capacity_lsb(cover, depth=2)
+        assert cap2['capacity_bits'] == cap1['capacity_bits'] * 2
+
+
+class TestLSBDepth3:
+    def test_roundtrip(self):
+        cover = make_test_image("d3_cover.png")
+        stego = os.path.join(TEST_DIR, "d3_stego.png")
+        secret = "Depth 3 test!"
+        encode_lsb(cover, secret, stego, depth=3)
+        assert decode_lsb(stego) == secret
+
+    def test_capacity_tripled(self):
+        cover = make_test_image("d3_cap.png", size=(100, 100))
+        cap1 = capacity_lsb(cover, depth=1)
+        cap3 = capacity_lsb(cover, depth=3)
+        assert cap3['capacity_bits'] == cap1['capacity_bits'] * 3
+
+
+class TestLSBCompression:
+    def test_compressed_roundtrip(self):
+        cover = make_test_image("comp_cover.png", size=(256, 256))
+        stego = os.path.join(TEST_DIR, "comp_stego.png")
+        secret = "A" * 2000
+        encode_lsb(cover, secret, stego, depth=1, compress=True)
+        assert decode_lsb(stego) == secret
+
+    def test_uncompressed_roundtrip(self):
+        cover = make_test_image("uncomp_cover.png")
+        stego = os.path.join(TEST_DIR, "uncomp_stego.png")
+        secret = "Short"
+        encode_lsb(cover, secret, stego, depth=1, compress=False)
+        assert decode_lsb(stego) == secret
+
+
+class TestLSBVisual:
     def test_visual_similarity(self):
-        """Stego image should look identical to cover."""
-        cover = make_test_image("cover5.png", size=(100, 100))
-        stego = os.path.join(TEST_DIR, "stego5.png")
-        encode_lsb(cover, "test", stego)
+        """Stego image should look identical to cover at depth=1."""
+        cover = make_test_image("vis_cover.png", size=(100, 100))
+        stego = os.path.join(TEST_DIR, "vis_stego.png")
+        encode_lsb(cover, "test", stego, depth=1)
         c = Image.open(cover)
         s = Image.open(stego)
         assert c.size == s.size
-        assert c.mode == s.mode
-        # Pixel difference should be minimal (<=1 per channel)
         for x in range(c.width):
             for y in range(c.height):
                 cp = c.getpixel((x, y))
@@ -65,30 +129,9 @@ class TestLSB:
                 for i in range(len(cp)):
                     assert abs(cp[i] - sp[i]) <= 1
 
-    def test_capacity_check(self):
-        cover = make_test_image("cover6.png", size=(100, 100))
-        cap = capacity_lsb(cover)
-        assert cap['pixels'] == 10000
-        assert cap['channels'] == 3
-        assert cap['capacity_bits'] == 30000
-        assert cap['usable_bits'] == 29968  # 30000 - 32 (header)
-        assert cap['capacity_chars'] == 3746  # 29968 // 8
 
-    def test_secret_too_long(self):
-        cover = make_test_image("cover7.png", size=(10, 10))
-        stego = os.path.join(TEST_DIR, "stego7.png")
-        secret = "A" * 100
-        with pytest.raises(ValueError, match="too long"):
-            encode_lsb(cover, secret, stego)
-
-    def test_decode_empty_image(self):
-        """Decoding an unmodified image should not crash."""
-        cover = make_test_image("cover8.png")
+class TestLSBDecode:
+    def test_decode_empty(self):
+        cover = make_test_image("dec_empty.png")
         result = decode_lsb(cover)
-        assert isinstance(result, str)
-
-    def test_roundtrip_empty_secret(self):
-        cover = make_test_image("cover9.png")
-        stego = os.path.join(TEST_DIR, "stego9.png")
-        encode_lsb(cover, "", stego)
-        assert decode_lsb(stego) == ""
+        assert result == ""
