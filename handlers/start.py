@@ -13,7 +13,11 @@ Send me a cover text + your secret, and I'll embed the secret invisibly. Anyone 
 /encode — Hide a secret message in text
 /decode — Extract a hidden message
 /detect — Scan text for hidden data
+/imgencode — Hide text in an image
+/imgdecode — Extract hidden text from image
+/imgdetect — Scan image for hidden data
 /demo — See a live example
+/imgdemo — See an image steganography demo
 /methods — Learn about steganography methods
 /encrypt on|off — Toggle AES encryption
 

@@ -19,7 +19,7 @@ from handlers.methods import methods_handler, method_callback
 from handlers.encode import encode_handler, encode_method_callback, encode_message_handler
 from handlers.decode import decode_handler, decode_message_handler
 from handlers.detect import detect_handler, detect_message_handler
-from handlers.demo import demo_handler
+from handlers.demo import demo_handler, imgdemo_handler
 from handlers.encrypt import encrypt_handler
 from handlers.imgencode import imgencode_handler, imgencode_photo_handler, imgencode_secret_handler
 from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler
@@ -73,6 +73,7 @@ def main():
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("methods", methods_handler))
     app.add_handler(CommandHandler("demo", demo_handler))
+    app.add_handler(CommandHandler("imgdemo", imgdemo_handler))
     app.add_handler(CommandHandler("encode",
         lambda u, c: encode_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("decode",

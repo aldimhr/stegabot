@@ -48,6 +48,19 @@ METHOD_INFO = {
             "Humans can't tell them apart. Machines can."
         ),
     },
+    "image_lsb": {
+        "name": "🖼️ Image LSB (Least Significant Bit)",
+        "desc": (
+            "Hides text in the least significant bits of pixel colors.\n\n"
+            "*How it works:* Each pixel's R, G, B values have their "
+            "last bit replaced with secret data bits.\n"
+            "*Capacity:* 3 bits per pixel (huge!)\n"
+            "*Robustness:* Survives exact copy-paste; destroyed by compression\n"
+            "*Telegram:* ⚠️ Must send as document (not photo) to preserve data\n\n"
+            "A 512×512 image can hide ~96 KB of text!\n\n"
+            "Use /imgencode to hide, /imgdecode to extract."
+        ),
+    },
 }
 
 
@@ -61,6 +74,9 @@ async def methods_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton("🔹 Acrostic", callback_data="method_acrostic"),
             InlineKeyboardButton("🔹 Homoglyph", callback_data="method_homoglyph"),
+        ],
+        [
+            InlineKeyboardButton("🖼️ Image LSB", callback_data="method_image_lsb"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
