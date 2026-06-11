@@ -21,6 +21,9 @@ from handlers.decode import decode_handler, decode_message_handler
 from handlers.detect import detect_handler, detect_message_handler
 from handlers.demo import demo_handler
 from handlers.encrypt import encrypt_handler
+from handlers.imgencode import imgencode_handler, imgencode_photo_handler, imgencode_secret_handler
+from handlers.imgdecode import imgdecode_handler, imgdecode_photo_handler
+from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -54,6 +57,8 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await detect_message_handler(update, context, session_mgr)
     elif step in ("awaiting_cover", "awaiting_secret"):
         await encode_message_handler(update, context, session_mgr)
+    elif step == "awaiting_image_secret":
+        await imgencode_secret_handler(update, context, session_mgr)
 
 
 def main():
@@ -76,6 +81,12 @@ def main():
         lambda u, c: detect_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("encrypt",
         lambda u, c: encrypt_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("imgencode",
+        lambda u, c: imgencode_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("imgdecode",
+        lambda u, c: imgdecode_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("imgdetect",
+        lambda u, c: imgdetect_handler(u, c, session_mgr)))
 
     # Callback query handlers (inline buttons)
     app.add_handler(CallbackQueryHandler(method_callback, pattern="^method_"))
@@ -86,6 +97,22 @@ def main():
 
     # Text message router (for multi-turn flows)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_router))
+
+    # Photo router (for image steganography flows)
+    async def photo_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Route photo messages to the correct handler."""
+        chat_id = update.effective_chat.id
+        session = session_mgr.get(chat_id)
+        step = session.get("step")
+
+        if step == "awaiting_image":
+            await imgencode_photo_handler(update, context, session_mgr)
+        elif step == "awaiting_stego_image":
+            await imgdecode_photo_handler(update, context, session_mgr)
+        elif step == "awaiting_detect_image":
+            await imgdetect_photo_handler(update, context, session_mgr)
+
+    app.add_handler(MessageHandler(filters.PHOTO, photo_router))
 
     logger.info("StegaBot starting...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
