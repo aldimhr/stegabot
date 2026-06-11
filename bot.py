@@ -77,17 +77,17 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def post_init(app: Application) -> None:
     """Set bot commands menu after initialization."""
     commands = [
-        BotCommand("start", "Welcome & overview"),
-        BotCommand("encode", "Hide a secret in text"),
-        BotCommand("decode", "Extract a hidden text message"),
-        BotCommand("detect", "Scan text for hidden data"),
-        BotCommand("imgencode", "Hide text in an image"),
-        BotCommand("imgdecode", "Extract hidden text from image"),
-        BotCommand("imgdetect", "Scan image for hidden data"),
-        BotCommand("methods", "Learn about steganography methods"),
-        BotCommand("demo", "Live text steganography demo"),
-        BotCommand("imgdemo", "Live image steganography demo"),
-        BotCommand("encrypt", "Toggle AES-128 encryption"),
+        BotCommand("start", "🔐 Welcome & overview"),
+        BotCommand("encode", "📝 Hide a secret in text"),
+        BotCommand("decode", "📝 Extract a hidden text message"),
+        BotCommand("detect", "🔍 Scan text for hidden data"),
+        BotCommand("imgencode", "🖼️ Hide text in an image"),
+        BotCommand("imgdecode", "🖼️ Extract hidden text from image"),
+        BotCommand("imgdetect", "🔍 Scan image for hidden data"),
+        BotCommand("methods", "📖 Learn about steganography methods"),
+        BotCommand("demo", "📝 Live text steganography demo"),
+        BotCommand("imgdemo", "🖼️ Live image steganography demo"),
+        BotCommand("encrypt", "🔒 Toggle AES-128 encryption"),
     ]
     await app.bot.set_my_commands(commands)
     logger.info("Bot commands menu registered")

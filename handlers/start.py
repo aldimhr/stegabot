@@ -2,27 +2,39 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-START_TEXT = """🔐 *StegaBot* — Hide secrets in plain text!
+START_TEXT = """🔐 *StegaBot* — Hide secrets in plain sight
 
-I use classical steganography to hide messages inside innocent-looking text. No AI, just pure math.
+I use steganography to hide messages inside text and images. No AI, just pure math + cryptography.
 
-*How it works:*
-Send me a cover text + your secret, and I'll embed the secret invisibly. Anyone with this bot can decode it.
+*Two ways to hide:*
 
-*Available commands:*
-/encode — Hide a secret message in text
-/decode — Extract a hidden message
+📝 *Text Steganography*
+Hide secrets inside normal-looking text using 4 methods:
+• ZWC — zero-width characters between letters
+• SNOW — invisible whitespace/tabs at line ends
+• Acrostic — first letters of each word spell your secret
+• Homoglyph — swap similar-looking characters
+
+🖼️ *Image Steganography*
+Hide text inside PNG images using LSB encoding:
+• Standard mode — quick hide, no passphrase needed
+• 🔒 *Secure mode* — AES-128 encryption + scrambled pixels + PBKDF2 key derivation
+  No magic header, no detectable patterns, passphrase-protected
+
+*Commands:*
+/encode — Hide a secret in text
+/decode — Extract a hidden text message
 /detect — Scan text for hidden data
 /imgencode — Hide text in an image
 /imgdecode — Extract hidden text from image
 /imgdetect — Scan image for hidden data
-/demo — See a live example
-/imgdemo — See an image steganography demo
+/demo — Text steganography demo
+/imgdemo — Image steganography demo
 /methods — Learn about steganography methods
-/encrypt on|off — Toggle AES encryption
+/encrypt on|off — Toggle AES encryption for text
 
-*Example:*
-The text "Hello world" can hide the secret "hi" using zero-width characters — it still looks exactly like "Hello world" but carries hidden data!
+*Quick example:*
+The text "Hello world" can hide "hi" using zero-width characters — looks identical but carries hidden data!
 
 Try /demo to see it in action 👇"""
 
