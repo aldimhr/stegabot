@@ -35,6 +35,7 @@ from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler, imgde
 from handlers.audioencode import audioencode_handler, audioencode_document_handler, audioencode_secret_handler
 from handlers.audiodecode import audiodecode_handler, audiodecode_document_handler
 from handlers.audiodetect import audiodetect_handler, audiodetect_document_handler
+from handlers.capacity import capacity_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -98,6 +99,7 @@ async def post_init(app: Application) -> None:
         BotCommand("audioencode", "🎵 Hide text in audio (WAV)"),
         BotCommand("audiodecode", "🎵 Extract hidden text from audio"),
         BotCommand("audiodetect", "🔍 Scan audio for hidden data"),
+        BotCommand("capacity", "📊 Capacity guide for all methods"),
     ]
     await app.bot.set_my_commands(commands)
     logger.info("Bot commands menu registered")
@@ -137,6 +139,7 @@ def main():
         lambda u, c: audiodecode_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("audiodetect",
         lambda u, c: audiodetect_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("capacity", capacity_handler))
 
     # Callback query handlers (inline buttons)
     app.add_handler(CallbackQueryHandler(method_callback, pattern="^method_"))
