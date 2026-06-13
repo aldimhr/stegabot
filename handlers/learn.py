@@ -833,7 +833,12 @@ TOPICS = {
             "Phase coding and spread spectrum are harder to detect.\n\n"
             "*Telegram Tip:*\n"
             "Send as 📎 document, NOT as voice message! "
-            "Voice messages are re-encoded to Opus, destroying LSB data."
+            "Voice messages are re-encoded to Opus, destroying LSB data.\n\n"
+            "*Try It:*\n"
+            "• /audioencode — Hide text in a WAV file\n"
+            "• /audiodecode — Extract hidden text from WAV\n"
+            "• /audiodetect — Scan WAV for hidden data\n"
+            "• /capacity — See capacity for all methods"
         ),
         "buttons": [
             [
