@@ -3,11 +3,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from state import SessionManager
-from stegano.zwc import encode_zwc
-from stegano.snow import encode_snow
+from stegano.zwc import encode_zwc, decode_zwc
+from stegano.snow import encode_snow, decode_snow
 from stegano.acrostic import encode_acrostic
-from stegano.homoglyph import encode_homoglyph
-from stegano.variation_selector import encode_vs
+from stegano.homoglyph import encode_homoglyph, decode_homoglyph
+from stegano.variation_selector import encode_vs, decode_vs
 from stegano.emoji import encode_emoji
 from stegano.utils import text_to_bits, capacity_check
 from stegano.crypto import encrypt_secret
@@ -154,6 +154,22 @@ async def encode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
                 f"({cap['utilization']:.0%} used)"
             )
 
+        # Roundtrip verification for text methods
+        verify_icon = ""
+        decoders = {
+            "zwc": decode_zwc, "snow": decode_snow,
+            "homoglyph": decode_homoglyph, "variation_selector": decode_vs,
+        }
+        if method in decoders:
+            try:
+                decoded = decoders[method](stego)
+                if decoded.strip() == secret.strip():
+                    verify_icon = "\n✅ Roundtrip verified"
+                else:
+                    verify_icon = "\n⚠️ Verification mismatch"
+            except Exception:
+                verify_icon = "\n⚠️ Verification failed"
+
         session_mgr.reset(chat_id)
 
         method_names = {
@@ -177,7 +193,7 @@ async def encode_message_handler(update: Update, context: ContextTypes.DEFAULT_T
             f"✅ *Done!* Send this stego text — it looks normal but carries your secret:\n\n"
             f"{display}\n\n"
             f"Method: {method_names[method]}"
-            f"{cap_info}\n\n"
+            f"{cap_info}{verify_icon}\n\n"
             f"💡 Anyone with this bot can use /decode to read the hidden message.",
             parse_mode="Markdown",
         )
