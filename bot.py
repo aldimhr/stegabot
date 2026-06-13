@@ -1,6 +1,6 @@
 """StegaBot — Telegram bot for text steganography."""
 import logging
-from telegram import BotCommand, Update
+from telegram import BotCommand, MenuButtonCommands, Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -102,7 +102,11 @@ async def post_init(app: Application) -> None:
         BotCommand("capacity", "📊 Capacity guide for all methods"),
     ]
     await app.bot.set_my_commands(commands)
-    logger.info("Bot commands menu registered")
+    # Force menu button to show commands (not web app)
+    await app.bot.set_chat_menu_button(
+        chat_id=app.bot.id, menu_button=MenuButtonCommands()
+    )
+    logger.info("Bot commands menu + menu button registered")
 
 
 def main():
