@@ -32,6 +32,9 @@ from handlers.imgdecode import (
     imgdecode_decrypt_choice, imgdecode_passphrase_handler
 )
 from handlers.imgdetect import imgdetect_handler, imgdetect_photo_handler, imgdetect_document_handler
+from handlers.audioencode import audioencode_handler, audioencode_document_handler, audioencode_secret_handler
+from handlers.audiodecode import audiodecode_handler, audiodecode_document_handler
+from handlers.audiodetect import audiodetect_handler, audiodetect_document_handler
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -73,6 +76,8 @@ async def message_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await imgdecode_passphrase_handler(update, context, session_mgr)
     elif step == "awaiting_secure_passphrase":
         await imgdecode_passphrase_handler(update, context, session_mgr)
+    elif step == "awaiting_audio_secret":
+        await audioencode_secret_handler(update, context, session_mgr)
 
 
 async def post_init(app: Application) -> None:
@@ -90,6 +95,9 @@ async def post_init(app: Application) -> None:
         BotCommand("imgdemo", "🖼️ Live image steganography demo"),
         BotCommand("encrypt", "🔒 Toggle AES-128 encryption"),
         BotCommand("learn", "📚 Learn steganography theory"),
+        BotCommand("audioencode", "🎵 Hide text in audio (WAV)"),
+        BotCommand("audiodecode", "🎵 Extract hidden text from audio"),
+        BotCommand("audiodetect", "🔍 Scan audio for hidden data"),
     ]
     await app.bot.set_my_commands(commands)
     logger.info("Bot commands menu registered")
@@ -123,6 +131,12 @@ def main():
         lambda u, c: imgdecode_handler(u, c, session_mgr)))
     app.add_handler(CommandHandler("imgdetect",
         lambda u, c: imgdetect_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("audioencode",
+        lambda u, c: audioencode_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("audiodecode",
+        lambda u, c: audiodecode_handler(u, c, session_mgr)))
+    app.add_handler(CommandHandler("audiodetect",
+        lambda u, c: audiodetect_handler(u, c, session_mgr)))
 
     # Callback query handlers (inline buttons)
     app.add_handler(CallbackQueryHandler(method_callback, pattern="^method_"))
@@ -163,7 +177,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.PHOTO, photo_router))
 
-    # Document router (for image decode — documents preserve pixels!)
+    # Document router (for image and audio — documents preserve data!)
     async def document_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Route document messages to the correct handler."""
         chat_id = update.effective_chat.id
@@ -176,6 +190,12 @@ def main():
             await imgdecode_document_handler(update, context, session_mgr)
         elif step == "awaiting_detect_image":
             await imgdetect_document_handler(update, context, session_mgr)
+        elif step == "awaiting_audio":
+            await audioencode_document_handler(update, context, session_mgr)
+        elif step == "awaiting_stego_audio":
+            await audiodecode_document_handler(update, context, session_mgr)
+        elif step == "awaiting_detect_audio":
+            await audiodetect_document_handler(update, context, session_mgr)
 
     app.add_handler(MessageHandler(filters.Document.ALL, document_router))
 
