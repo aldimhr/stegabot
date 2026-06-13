@@ -6,7 +6,7 @@ START_TEXT = """🔐 *StegaBot* — Hide secrets in plain sight
 
 I use steganography to hide messages inside text and images. No AI, just pure math + cryptography.
 
-*Two ways to hide:*
+*Three ways to hide:*
 
 📝 *Text Steganography*
 Hide secrets inside normal-looking text using 6 methods:
@@ -22,6 +22,10 @@ Hide text inside PNG images using LSB encoding:
 • Standard mode — quick hide, no passphrase needed
 • 🔒 *Secure mode* — AES-128 encryption + scrambled pixels + PBKDF2 key derivation
   No magic header, no detectable patterns, passphrase-protected
+🎵 *Audio Steganography*
+Hide text inside WAV audio files using LSB encoding:
+• ~1KB capacity per second of audio
+• Send as document to preserve hidden data
 
 *Commands:*
 /encode — Hide a secret in text
@@ -30,6 +34,9 @@ Hide text inside PNG images using LSB encoding:
 /imgencode — Hide text in an image
 /imgdecode — Extract hidden text from image
 /imgdetect — Scan image for hidden data
+/audioencode — Hide text in audio (WAV)
+/audiodecode — Extract hidden text from audio
+/audiodetect — Scan audio for hidden data
 /demo — Text steganography demo
 /imgdemo — Image steganography demo
 /methods — Learn about steganography methods
